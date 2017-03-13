@@ -13,7 +13,7 @@ var gridY = false;
 var gridZ = false;
 var axes = true;
 var ground = true;
-var arm, forearm;
+var arm, forearm, addtionalArm, circle;
 
 function fillScene() {
 	scene = new THREE.Scene();
@@ -62,24 +62,53 @@ function fillScene() {
 
 	createRobotExtender( forearm, faLength, robotForearmMaterial );
 
+	addtionalArm = new THREE.Object3D();
+
+	createAddtionalArm( addtionalArm, robotForearmMaterial);
+    addtionalArm.rotation.z = -45 * Math.PI / 180;
+    addtionalArm.position.y = 80;
+    forearm.add(addtionalArm);
+
 	arm = new THREE.Object3D();
 	var uaLength = 120;	
 	
 	createRobotCrane( arm, uaLength, robotUpperArmMaterial );
 	
 	// Move the forearm itself to the end of the upper arm.
-	forearm.position.y = uaLength;	
+	forearm.position.y = uaLength;
 	arm.add( forearm );
 	
 	scene.add( arm );
 }
 
+function createAddtionalArm( part, material ) {
+
+    var materialRed = new THREE.MeshPhongMaterial( { color: 'red', specular: 0x95E4FB, shininess: 100 } );
+    for ( var i = 0; i < 100; i++ ) {
+        var cylinder = new THREE.Mesh(new THREE.CylinderGeometry( 20 - ( 2 * i ), 20 - ( 2 * i ), 6, 32 ), 20 - ( 2 * i ) < 0 ? materialRed : material );
+        cylinder.position.y = 19 + ( 6 * i);
+        part.add( cylinder );
+    }
+
+    circle = new THREE.Object3D();
+    for ( var j = 0; j < 2; j++ ) {
+        for ( var i = 0; i < 30; i++ ) {
+            var geometry = new THREE.SphereGeometry( 2, 32, 32 );
+            var sphere = new THREE.Mesh( geometry, materialRed );
+            sphere.position.z = 50 - (10 * j);
+            sphere.position.y = 50 + (10 * j);
+            var objectBuff = new THREE.Object3D();
+            objectBuff.add(sphere);
+            objectBuff.rotation.y = (12 * i) * Math.PI / 180;
+            circle.add( objectBuff );
+        }
+	}
+	part.add(circle);
+
+}
+
 function createRobotExtender( part, length, material )
 {
-	var cylinder = new THREE.Mesh( 
-		new THREE.CylinderGeometry( 22, 22, 6, 32 ), material );
-	part.add( cylinder );
-
 	var i;
 	for ( i = 0; i < 4; i++ )
 	{
@@ -91,7 +120,7 @@ function createRobotExtender( part, length, material )
 		part.add( box );
 	}
 	
-	cylinder = new THREE.Mesh( 
+	var cylinder = new THREE.Mesh(
 		new THREE.CylinderGeometry( 15, 15, 40, 32 ), material );
 	cylinder.rotation.x = 90 * Math.PI/180;
 	cylinder.position.y = length;
@@ -163,7 +192,12 @@ function render() {
 	
 	forearm.rotation.y = effectController.fy * Math.PI/180;	// yaw
 	forearm.rotation.z = effectController.fz * Math.PI/180;	// roll
-	
+
+    addtionalArm.rotation.y = effectController.sy * Math.PI/180;	// yaw
+    addtionalArm.rotation.z = effectController.sz * Math.PI/180;	// roll
+
+    circle.rotation.y += 0.0025;
+
 	renderer.render(scene, camera);
 }
 
@@ -183,7 +217,10 @@ function setupGui() {
 		uz: -15.0,
 
 		fy: 10.0,
-		fz: 60.0
+		fz: 60.0,
+
+		sy: 0,
+		sz: 30
 	};
 
 	var gui = new dat.GUI();
@@ -198,6 +235,8 @@ function setupGui() {
 	h.add(effectController, "uz", -45.0, 45.0, 0.025).name("Upper arm z");
 	h.add(effectController, "fy", -180.0, 180.0, 0.025).name("Forearm y");
 	h.add(effectController, "fz", -120.0, 120.0, 0.025).name("Forearm z");
+    h.add(effectController, "sy", -180.0, 180.0, 0.025).name("Signal y");
+    h.add(effectController, "sz", -45.0, 45.0, 0.025).name("Signal z");
 }
 
 function takeScreenshot() {
